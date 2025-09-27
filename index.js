@@ -84,7 +84,7 @@ async function run() {
 
         let query = {};
         if (email) {
-          query = { created_by: email }; // user অনুযায়ী filter
+          query = { created_by: email }; // user  filter
         }
 
         const posts = await postsCollection
