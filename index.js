@@ -3,6 +3,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const admin = require("firebase-admin");
+
 // Load environment variables
 dotenv.config();
 const stripe = require("stripe")(process.env.PAYMENT_GATEWAY_KEY);
