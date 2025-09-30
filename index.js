@@ -207,7 +207,7 @@ async function run() {
     // ✅ Vote API
     app.post("/posts/:id/vote", async (req, res) => {
       try {
-        const { userId, type } = req.body; // type = "up" বা "down"
+        const { userId, type } = req.body;
         const id = req.params.id;
 
         const post = await postsCollection.findOne({ _id: new ObjectId(id) });
