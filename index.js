@@ -9,7 +9,7 @@ dotenv.config();
 const stripe = require("stripe")(process.env.PAYMENT_GATEWAY_KEY);
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
@@ -121,6 +121,31 @@ async function run() {
       } catch (error) {
         console.error("Error fetching post:", error);
         res.status(500).send({ error: "Failed to fetch post" });
+      }
+    });
+
+    // GET users with pagination
+    app.get("/users", async (req, res) => {
+      const page = parseInt(req.query.page) || 1; // current page, default 1
+      const limit = parseInt(req.query.limit) || 10; // items per page, default 10
+      const skip = (page - 1) * limit;
+
+      try {
+        const totalUsers = await usersCollection.countDocuments();
+        const users = await usersCollection
+          .find({})
+          .skip(skip)
+          .limit(limit)
+          .toArray();
+
+        res.send({
+          users,
+          totalUsers,
+          totalPages: Math.ceil(totalUsers / limit),
+          currentPage: page,
+        });
+      } catch (error) {
+        res.status(500).send({ error: "Failed to fetch users" });
       }
     });
 
@@ -300,7 +325,7 @@ async function run() {
       }
     });
 
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log("✅ Successfully connected to MongoDB!");
   } catch (error) {
     console.error("❌ Error connecting to MongoDB:", error);
