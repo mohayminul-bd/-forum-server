@@ -166,7 +166,7 @@ async function run() {
       }
     });
 
-    // DELETE comment
+    // DELETE comment my post
     app.delete("/posts/:id/comments/:commentId", async (req, res) => {
       try {
         const { id, commentId } = req.params;
