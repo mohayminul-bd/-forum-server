@@ -222,7 +222,7 @@ async function run() {
         if (alreadyVoted) {
           return res
             .status(400)
-            .send({ message: "You have already voted on this post." });
+            .send({ message: "You have already voted on this post" });
         }
 
         // Update counts
