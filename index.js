@@ -271,7 +271,7 @@ async function run() {
       }
     });
 
-    // 2️⃣ Membership Update API (optional)
+    // 2️⃣ Membership Update API
     app.post("/membership", async (req, res) => {
       const { email } = req.body;
       try {
