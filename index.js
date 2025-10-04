@@ -37,9 +37,13 @@ async function run() {
 
     const db = client.db("forumDB");
     const usersCollection = db.collection("users");
-
     const postsCollection = db.collection("posts");
     const paymentsCollection = db.collection("payments");
+
+    // second
+    const announcementsCollection = db.collection("announcements");
+    const reportsCollection = db.collection("reports");
+    const tagsCollection = db.collection("tags");
 
     // custom middlewares
     const verifyFBToken = async (req, res, next) => {
@@ -98,6 +102,16 @@ async function run() {
         console.error("Error fetching posts", error);
         res.status(500).send({ error: "Failed to fetch posts" });
       }
+    });
+
+    // ✅ Make Admin
+    app.patch("/users/:id/make-admin", async (req, res) => {
+      const id = req.params.id;
+      const result = await usersCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { role: "admin" } }
+      );
+      res.send(result);
     });
 
     // ✅ POST new post
@@ -230,6 +244,17 @@ async function run() {
       }
     });
 
+    // ✅ Report Comment
+    app.post("/comments/:id/report", async (req, res) => {
+      const report = {
+        commentId: req.params.id,
+        feedback: req.body.feedback,
+        createdAt: new Date(),
+      };
+      const result = await reportsCollection.insertOne(report);
+      res.send(result);
+    });
+
     // ✅ Vote API
     app.post("/posts/:id/vote", async (req, res) => {
       try {
@@ -276,6 +301,66 @@ async function run() {
       } catch (error) {
         console.error("Vote error:", error);
         res.status(500).send({ error: "Failed to vote" });
+      }
+    });
+
+    // ✅ Announcements
+    app.post("/announcements", async (req, res) => {
+      const result = await announcementsCollection.insertOne({
+        ...req.body,
+        createdAt: new Date(),
+      });
+      res.send(result);
+    });
+
+    app.get("/announcements", async (req, res) => {
+      const data = await announcementsCollection
+        .find()
+        .sort({ createdAt: -1 })
+        .toArray();
+      res.send(data);
+    });
+
+    // ✅ Reports (Admin)
+    app.get("/reports", async (req, res) => {
+      const reports = await reportsCollection.find().toArray();
+      res.send(reports);
+    });
+
+    // ✅ Tags
+    app.post("/tags", async (req, res) => {
+      const result = await tagsCollection.insertOne(req.body);
+      res.send(result);
+    });
+
+    app.get("/tags", async (req, res) => {
+      const tags = await tagsCollection.find().toArray();
+      res.send(tags);
+    });
+
+    // ✅ Admin Stats API
+    app.get("/admin/stats", async (req, res) => {
+      try {
+        const postsCount = await postsCollection.countDocuments();
+        const commentsCount = await postsCollection
+          .aggregate([{ $unwind: "$comments" }, { $count: "totalComments" }])
+          .toArray();
+
+        const totalComments = commentsCount[0]?.totalComments || 0;
+        const usersCount = await usersCollection.countDocuments();
+
+        // ধরলাম প্রথম admin
+        const admin = await usersCollection.findOne({ role: "admin" });
+
+        res.send({
+          posts: postsCount,
+          comments: totalComments,
+          users: usersCount,
+          admin,
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ error: "Failed to fetch admin stats" });
       }
     });
 
