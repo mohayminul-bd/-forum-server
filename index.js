@@ -210,28 +210,23 @@ async function run() {
     app.delete("/posts/:id/comments/:commentId", async (req, res) => {
       try {
         const { id, commentId } = req.params;
-        const { userId } = req.body; // ✅ frontend থেকে আসবে
+        const userId = req.query.userId; // <-- query থেকে
 
         if (!userId) return res.status(400).send({ error: "userId missing" });
 
         const post = await postsCollection.findOne({ _id: new ObjectId(id) });
         if (!post) return res.status(404).send({ error: "Post not found" });
 
-        // Find comment
         const comment = post.comments.find(
           (c) => c._id.toString() === commentId
         );
-
         if (!comment)
           return res.status(404).send({ error: "Comment not found" });
-
-        // Check ownership
         if (comment.userId !== userId)
           return res
             .status(403)
             .send({ error: "You can only delete your own comment" });
 
-        // Delete comment
         await postsCollection.updateOne(
           { _id: new ObjectId(id) },
           { $pull: { comments: { _id: new ObjectId(commentId) } } }
