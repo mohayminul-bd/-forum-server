@@ -46,24 +46,43 @@ async function run() {
     const tagsCollection = db.collection("tags");
 
     // custom middlewares
+    // ✅ Firebase Token Verify Middleware
     const verifyFBToken = async (req, res, next) => {
       const authHeader = req.headers.authorization;
 
-      if (!authorization) {
-        return res.status(401).send({ massage: "unauthorize access" });
-      }
-      const token = authHeader.split(" ")[1];
-      if (!token) {
-        return res.status(401).send({ massage: "unauthorize access" });
+      if (!authHeader) {
+        return res.status(401).send({ message: "Unauthorized access" });
       }
 
-      // verify the token
+      const token = authHeader.split(" ")[1];
+      if (!token) {
+        return res.status(401).send({ message: "Unauthorized access" });
+      }
+
       try {
         const decoded = await admin.auth().verifyIdToken(token);
         req.decoded = decoded;
         next();
       } catch (error) {
-        return res.status(403).send({ message: "forbidden access" });
+        console.error("Token verify error:", error);
+        return res.status(403).send({ message: "Forbidden access" });
+      }
+    };
+
+    // ✅ Admin Verify Middleware
+    const verifyAdmin = async (req, res, next) => {
+      try {
+        const email = req.decoded.email; // token থেকে ইমেইল নিলাম
+        const user = await usersCollection.findOne({ email });
+
+        if (!user || user.role !== "admin") {
+          return res.status(403).send({ message: "Forbidden! Admins only." });
+        }
+
+        next();
+      } catch (error) {
+        console.error("Admin check error:", error);
+        return res.status(500).send({ message: "Server error" });
       }
     };
 
@@ -334,7 +353,8 @@ async function run() {
     });
 
     // ✅ Admin Stats API
-    app.get("/admin/stats", async (req, res) => {
+    // Example: Get Admin Stats (Admins only)
+    app.get("/admin/stats", verifyFBToken, verifyAdmin, async (req, res) => {
       try {
         const postsCount = await postsCollection.countDocuments();
         const commentsCount = await postsCollection
@@ -344,18 +364,31 @@ async function run() {
         const totalComments = commentsCount[0]?.totalComments || 0;
         const usersCount = await usersCollection.countDocuments();
 
-        // ধরলাম প্রথম admin
-        const admin = await usersCollection.findOne({ role: "admin" });
-
         res.send({
           posts: postsCount,
           comments: totalComments,
           users: usersCount,
-          admin,
         });
       } catch (error) {
         console.error(error);
         res.status(500).send({ error: "Failed to fetch admin stats" });
+      }
+    });
+
+    // ✅ Get user role by email
+    app.get("/users/role/:email", async (req, res) => {
+      try {
+        const email = req.params.email;
+        const user = await usersCollection.findOne({ email });
+
+        if (!user) {
+          return res.status(404).send({ role: "user" }); // default user
+        }
+
+        res.send({ role: user.role || "user" });
+      } catch (error) {
+        console.error("Get role error:", error);
+        res.status(500).send({ error: "Failed to get user role" });
       }
     });
 
