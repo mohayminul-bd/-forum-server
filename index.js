@@ -382,10 +382,13 @@ async function run() {
         const user = await usersCollection.findOne({ email });
 
         if (!user) {
-          return res.status(404).send({ role: "user" }); // default user
+          return res.status(404).send({ role: "user", isMember: false }); // default user
         }
 
-        res.send({ role: user.role || "user" });
+        res.send({
+          role: user.role || "user",
+          isMember: user.isMember || false,
+        });
       } catch (error) {
         console.error("Get role error:", error);
         res.status(500).send({ error: "Failed to get user role" });
